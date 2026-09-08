@@ -1,0 +1,585 @@
+name: Windows x64
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    tags:
+      - 'yunogram-v*'
+  workflow_dispatch:
+    inputs:
+      libraries_only:
+        description: 'Only build the third-party libraries, to warm the cache'
+        type: boolean
+        default: false
+      publish:
+        description: 'Tag this commit and publish the release when the build is green'
+        type: boolean
+        default: false
+      from_run:
+        description: 'Publish the artifacts of this earlier run instead of building again'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-x64-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+env:
+  REPO_DIR: tg-Yunogram-edition
+  UPDATE_PREFIX: https://github.com/si5830351-stack/Yunogram/releases/latest/download
+
+jobs:
+  verify-fork:
+    name: Verify fork identity
+    if: ${{ !inputs.from_run }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Verify fork invariants
+        run: python tools/verify_private_fork.py --require-autoupdate
+
+  libraries:
+    name: Third-party libraries
+    needs: verify-fork
+    if: ${{ github.event_name != 'pull_request' && !inputs.from_run }}
+    runs-on: windows-2022
+    timeout-minutes: 350
+    outputs:
+      cache-key: ${{ steps.key.outputs.value }}
+    steps:
+      - name: Prepare directories
+        shell: cmd
+        run: |
+          mkdir %userprofile%\TBuild\Libraries
+          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LIBRARIES_PATH=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          path: TBuild/tg-Yunogram-edition
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Compute cache key
+        id: key
+        shell: bash
+        run: |
+          cd "$TBUILD/$REPO_DIR"
+          value=$(cat \
+            Telegram/build/prepare/prepare.py \
+            Telegram/build/qt_version.py \
+            | sha256sum | cut -d' ' -f1)
+          echo "value=$value" >> $GITHUB_OUTPUT
+          echo "CACHE_KEY=$value" >> $GITHUB_ENV
+
+      - name: Restore ThirdParty cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: third-party-${{ env.CACHE_KEY }}-
+          restore-keys: |
+            third-party-${{ env.CACHE_KEY }}-
+            third-party-
+
+      - name: Restore Qt cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LIBRARIES_PATH }}\[qQ]t[_-]*
+            ${{ env.LIBRARIES_PATH }}\cache_keys\[qQ]t[_-]*
+          key: qt-${{ env.CACHE_KEY }}-
+          restore-keys: |
+            qt-${{ env.CACHE_KEY }}-
+            qt-
+
+      - name: Restore libraries cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LIBRARIES_PATH }}\*
+            !${{ env.LIBRARIES_PATH }}\cache_keys
+            !${{ env.LIBRARIES_PATH }}\[qQ]t[_-]*
+            ${{ env.LIBRARIES_PATH }}\cache_keys\*
+            !${{ env.LIBRARIES_PATH }}\cache_keys\[qQ]t[_-]*
+          key: libs-${{ env.CACHE_KEY }}-
+          restore-keys: |
+            libs-${{ env.CACHE_KEY }}-
+            libs-
+
+      - name: Build libraries
+        id: prepare
+        timeout-minutes: 290
+        shell: cmd
+        working-directory: TBuild/tg-Yunogram-edition
+        env:
+          YUNOGRAM_PREPARE_ONLY: "1"
+          YUNOGRAM_BUILD_PARALLEL: "4"
+        run: call build_yunogram.bat
+
+      # Keeps the cached tree small enough for the repository cache budget.
+      # prepare.py decides what to rebuild from cache_keys, not from these files.
+      - name: Drop intermediate files
+        if: always()
+        shell: bash
+        run: |
+          find "$LIBRARIES_PATH" \
+            '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' \
+              -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' \
+              -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' \
+              -o -path '*/objects-*' -o -path '*/cache_keys/*' \
+              -o -path '*/patches/*' -o -path '*/nv-codec-headers/*' ')' \
+            -type f ')' -o -empty ')' -delete || true
+
+      # Saved even when the step above failed or the job ran out of time, so a
+      # re-run of this job continues from the stages that did finish.
+      - name: Save ThirdParty cache
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: third-party-${{ env.CACHE_KEY }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save Qt cache
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LIBRARIES_PATH }}\[qQ]t[_-]*
+            ${{ env.LIBRARIES_PATH }}\cache_keys\[qQ]t[_-]*
+          key: qt-${{ env.CACHE_KEY }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Save libraries cache
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ${{ env.LIBRARIES_PATH }}\*
+            !${{ env.LIBRARIES_PATH }}\cache_keys
+            !${{ env.LIBRARIES_PATH }}\[qQ]t[_-]*
+            ${{ env.LIBRARIES_PATH }}\cache_keys\*
+            !${{ env.LIBRARIES_PATH }}\cache_keys\[qQ]t[_-]*
+          key: libs-${{ env.CACHE_KEY }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+  build:
+    name: Build client
+    needs: libraries
+    if: ${{ !inputs.libraries_only && !inputs.from_run }}
+    runs-on: windows-2022
+    timeout-minutes: 350
+    steps:
+      - name: Prepare directories
+        shell: cmd
+        run: |
+          mkdir %userprofile%\TBuild\Libraries
+          mklink /d %GITHUB_WORKSPACE%\TBuild %userprofile%\TBuild
+          echo TBUILD=%GITHUB_WORKSPACE%\TBuild>>%GITHUB_ENV%
+          echo LIBRARIES_PATH=%GITHUB_WORKSPACE%\TBuild\Libraries\win64>>%GITHUB_ENV%
+          echo CACHE_KEY=${{ needs.libraries.outputs.cache-key }}>>%GITHUB_ENV%
+
+      - name: Checkout with submodules
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 1
+          path: TBuild/tg-Yunogram-edition
+
+      - name: Reclaim runner disk space
+        shell: pwsh
+        run: |
+          $paths = @(
+            'C:\Android',
+            'C:\Program Files (x86)\Android',
+            'C:\Program Files\Microsoft SDKs\Azure',
+            'C:\Miniconda',
+            'C:\Julia',
+            'C:\Program Files\MongoDB',
+            'C:\Program Files\PostgreSQL',
+            'C:\hostedtoolcache\windows\CodeQL',
+            'C:\hostedtoolcache\windows\Ruby',
+            'C:\hostedtoolcache\windows\go',
+            'C:\hostedtoolcache\windows\node',
+            "$env:LOCALAPPDATA\Temp\chocolatey"
+          )
+          foreach ($path in $paths) {
+            if (Test-Path $path) {
+              Remove-Item $path -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+          Get-PSDrive -PSProvider FileSystem |
+            Where-Object { $_.Free -ne $null } |
+            Select-Object Name,
+              @{n='UsedGB';e={[math]::Round($_.Used/1GB,1)}},
+              @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      # The runner has 16 GB of RAM and a small pagefile. Heavy translation
+      # units commit more than that and the compiler dies with C1060.
+      - name: Enlarge the pagefile
+        shell: pwsh
+        run: |
+          $system = Get-CimInstance Win32_ComputerSystem
+          if ($system.AutomaticManagedPagefile) {
+            Set-CimInstance -InputObject $system `
+              -Property @{ AutomaticManagedPagefile = $false }
+          }
+          Get-CimInstance Win32_PageFileSetting | Remove-CimInstance
+          New-CimInstance -ClassName Win32_PageFileSetting `
+            -Property @{ Name = 'D:\pagefile.sys' } | Out-Null
+          Get-CimInstance Win32_PageFileSetting |
+            Set-CimInstance -Property @{
+              InitialSize = 81920
+              MaximumSize = 81920
+            }
+          Get-CimInstance Win32_PageFileSetting |
+            Select-Object Name, InitialSize, MaximumSize
+
+      - name: Restore ThirdParty cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.TBUILD }}\ThirdParty
+          key: third-party-${{ env.CACHE_KEY }}-
+          restore-keys: |
+            third-party-${{ env.CACHE_KEY }}-
+            third-party-
+
+      - name: Restore Qt cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LIBRARIES_PATH }}\[qQ]t[_-]*
+            ${{ env.LIBRARIES_PATH }}\cache_keys\[qQ]t[_-]*
+          key: qt-${{ env.CACHE_KEY }}-
+          restore-keys: |
+            qt-${{ env.CACHE_KEY }}-
+            qt-
+
+      - name: Restore libraries cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ${{ env.LIBRARIES_PATH }}\*
+            !${{ env.LIBRARIES_PATH }}\cache_keys
+            !${{ env.LIBRARIES_PATH }}\[qQ]t[_-]*
+            ${{ env.LIBRARIES_PATH }}\cache_keys\*
+            !${{ env.LIBRARIES_PATH }}\cache_keys\[qQ]t[_-]*
+          key: libs-${{ env.CACHE_KEY }}-
+          restore-keys: |
+            libs-${{ env.CACHE_KEY }}-
+            libs-
+
+      - name: Write update signing keys
+        shell: bash
+        env:
+          PACKER_PRIVATE_H: ${{ secrets.PACKER_PRIVATE_H }}
+        run: |
+          if [ -z "$PACKER_PRIVATE_H" ]; then
+            echo "PACKER_PRIVATE_H secret is not set." >&2
+            exit 1
+          fi
+          printf '%s' "$PACKER_PRIVATE_H" \
+            > "$TBUILD/$REPO_DIR/Telegram/SourceFiles/_other/packer_private.h"
+
+      - name: Build Yunogram Desktop
+        shell: cmd
+        working-directory: TBuild/tg-Yunogram-edition
+        env:
+          TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
+          TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
+          YUNOGRAM_ENABLE_AUTOUPDATE: "ON"
+          YUNOGRAM_UPDATE_PREFIX: ${{ env.UPDATE_PREFIX }}
+          YUNOGRAM_BUILD_PARALLEL: "4"
+          YUNOGRAM_EXTRA_DEFINES: -DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT= -DYUNOGRAM_DISABLE_LANG_SUBSETS=ON
+          YUNOGRAM_GENERATOR: Ninja Multi-Config
+        run: call build_yunogram.bat
+
+      - name: Report free space
+        if: always()
+        shell: pwsh
+        run: |
+          Get-PSDrive -PSProvider FileSystem |
+            Where-Object { $_.Free -ne $null } |
+            Select-Object Name,
+              @{n='UsedGB';e={[math]::Round($_.Used/1GB,1)}},
+              @{n='FreeGB';e={[math]::Round($_.Free/1GB,1)}}
+          $out = Join-Path $env:TBUILD "$env:REPO_DIR\out"
+          if (Test-Path $out) {
+            $sum = (Get-ChildItem $out -Recurse -Force -ErrorAction SilentlyContinue |
+              Measure-Object -Sum Length).Sum
+            'out/ = {0:N1} GB' -f ($sum / 1GB)
+          }
+
+      - name: Drop the signing keys
+        if: always()
+        shell: bash
+        run: rm -f "$TBUILD/$REPO_DIR/Telegram/SourceFiles/_other/packer_private.h"
+
+      - name: Read version
+        shell: bash
+        run: |
+          version=$(sed -n 's/^AppVersionStr[[:space:]]\+\(.*\)$/\1/p' \
+            "$TBUILD/$REPO_DIR/Telegram/build/version" | tr -d '[:space:]')
+          if [ -z "$version" ]; then
+            echo "AppVersionStr was not found." >&2
+            exit 1
+          fi
+          echo "YUNOGRAM_VERSION=$version" >> $GITHUB_ENV
+
+      - name: Verify executable metadata
+        shell: pwsh
+        run: |
+          $exe = Join-Path $env:TBUILD "$env:REPO_DIR\out\Release\Yunogram.exe"
+          if (-not (Test-Path $exe)) { throw 'Yunogram.exe was not produced.' }
+
+          $version = (Get-Item $exe).VersionInfo
+          Write-Host "ProductName=$($version.ProductName)"
+          Write-Host "FileVersion=$($version.FileVersion)"
+
+          if ($version.ProductName -ne 'Yunogram Desktop') {
+            throw "Unexpected ProductName: $($version.ProductName)"
+          }
+          if (-not $version.FileVersion.StartsWith($env:YUNOGRAM_VERSION)) {
+            throw "Unexpected FileVersion: $($version.FileVersion)"
+          }
+
+      - name: Upload client
+        uses: actions/upload-artifact@v7
+        with:
+          name: client-${{ env.YUNOGRAM_VERSION }}
+          path: |
+            TBuild/tg-Yunogram-edition/out/Release/Yunogram.exe
+            TBuild/tg-Yunogram-edition/out/Release/Updater.exe
+            TBuild/tg-Yunogram-edition/out/Release/Packer.exe
+            TBuild/tg-Yunogram-edition/out/Release/modules/**
+          if-no-files-found: error
+          retention-days: 14
+
+  package:
+    name: Package installer
+    needs: build
+    if: ${{ !inputs.from_run }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Read version
+        shell: bash
+        run: |
+          version=$(sed -n 's/^AppVersionStr[[:space:]]\+\(.*\)$/\1/p' \
+            Telegram/build/version | tr -d '[:space:]')
+          echo "YUNOGRAM_VERSION=$version" >> $GITHUB_ENV
+
+      - name: Download client
+        uses: actions/download-artifact@v8
+        with:
+          name: client-${{ env.YUNOGRAM_VERSION }}
+          path: out/Release
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $candidates = @(
+            "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+            "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
+          )
+          if (-not ($candidates | Where-Object { Test-Path $_ })) {
+            choco install innosetup --no-progress -y
+          }
+
+      - name: Package Windows artifacts
+        shell: pwsh
+        run: |
+          & "$env:GITHUB_WORKSPACE\scripts\package_windows.ps1" `
+            -ReleasePath "$env:GITHUB_WORKSPACE\out\Release" `
+            -OutputPath "$env:GITHUB_WORKSPACE\artifacts"
+          Get-ChildItem "$env:GITHUB_WORKSPACE\artifacts" -File |
+            Select-Object Name, Length
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-${{ env.YUNOGRAM_VERSION }}
+          path: |
+            artifacts/Yunogram-portable-x64-*.zip
+            artifacts/Yunogram-setup-x64-*.exe
+            artifacts/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish release and update
+    needs: package
+    # from_run publishes an earlier build, so package is skipped and its
+    # result must not gate this job.
+    if: ${{ !cancelled()
+      && (needs.package.result == 'success' || inputs.from_run)
+      && (startsWith(github.ref, 'refs/tags/yunogram-v') || inputs.publish) }}
+    runs-on: windows-2022
+    timeout-minutes: 60
+    # Holds UPDATES_REPO_TOKEN and is restricted to yunogram-v* tags, so no
+    # other job in the repository can read it.
+    environment: release
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Resolve the build to publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "${{ inputs.from_run }}" ]; then
+            run_id="${{ inputs.from_run }}"
+            info=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id")
+            conclusion=$(jq -r '.conclusion' <<<"$info")
+            sha=$(jq -r '.head_sha' <<<"$info")
+            if [ "$conclusion" != "success" ]; then
+              echo "Run $run_id finished as $conclusion, refusing to publish it." >&2
+              exit 1
+            fi
+          else
+            run_id="$GITHUB_RUN_ID"
+            sha="$GITHUB_SHA"
+          fi
+          echo "YUNOGRAM_RUN_ID=$run_id" >> $GITHUB_ENV
+          echo "YUNOGRAM_SOURCE_SHA=$sha" >> $GITHUB_ENV
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read version and notes
+        shell: bash
+        run: |
+          # The binaries come from YUNOGRAM_SOURCE_SHA, so the version has to be
+          # read there too; the notes are taken from the checked out branch so
+          # they can still be corrected after the build.
+          if ! git cat-file -e "$YUNOGRAM_SOURCE_SHA^{commit}" 2>/dev/null; then
+            git fetch --no-tags origin "$YUNOGRAM_SOURCE_SHA"
+          fi
+          version=$(git show "$YUNOGRAM_SOURCE_SHA:Telegram/build/version" \
+            | sed -n 's/^AppVersionStr[[:space:]]\+\(.*\)$/\1/p' \
+            | tr -d '[:space:]')
+          echo "YUNOGRAM_VERSION=$version" >> $GITHUB_ENV
+          echo "YUNOGRAM_TAG=yunogram-v$version" >> $GITHUB_ENV
+          if [ "${GITHUB_REF}" != "${GITHUB_REF#refs/tags/}" ]; then
+            tag="${GITHUB_REF#refs/tags/}"
+            if [ "$tag" != "yunogram-v$version" ]; then
+              echo "Tag $tag does not match version $version." >&2
+              exit 1
+            fi
+            git tag -l --format='%(contents)' "$tag" > release-notes.md
+          else
+            cp "docs/release-notes/$version.md" release-notes.md
+          fi
+          if [ ! -s release-notes.md ]; then
+            echo "No release notes for $version." >&2
+            exit 1
+          fi
+
+      - name: Download client
+        uses: actions/download-artifact@v8
+        with:
+          name: client-${{ env.YUNOGRAM_VERSION }}
+          path: out/Release
+          run-id: ${{ env.YUNOGRAM_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download installer
+        uses: actions/download-artifact@v8
+        with:
+          name: installer-${{ env.YUNOGRAM_VERSION }}
+          path: artifacts
+          run-id: ${{ env.YUNOGRAM_RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create the tag
+        if: ${{ !startsWith(github.ref, 'refs/tags/yunogram-v') }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email \
+            '41898282+github-actions[bot]@users.noreply.github.com'
+          if git ls-remote --exit-code --tags origin "$YUNOGRAM_TAG" \
+              >/dev/null 2>&1; then
+            echo "Tag $YUNOGRAM_TAG already exists, leaving it alone."
+          else
+            git tag -a "$YUNOGRAM_TAG" "$YUNOGRAM_SOURCE_SHA" -F release-notes.md
+            git push origin "$YUNOGRAM_TAG"
+          fi
+
+      - name: Create release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          assets=(
+            artifacts/Yunogram-setup-x64-*.exe
+            artifacts/Yunogram-portable-x64-*.zip
+            artifacts/SHA256SUMS.txt
+          )
+          # Re-running this job after a later step failed must not trip over
+          # the release it already created.
+          if gh release view "$YUNOGRAM_TAG" --repo "$GITHUB_REPOSITORY" \
+              >/dev/null 2>&1; then
+            echo "Release exists, replacing its assets."
+            gh release edit "$YUNOGRAM_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Yunogram Desktop $YUNOGRAM_VERSION" \
+              --notes-file release-notes.md
+            gh release upload "$YUNOGRAM_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --clobber \
+              "${assets[@]}"
+          else
+            gh release create "$YUNOGRAM_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Yunogram Desktop $YUNOGRAM_VERSION" \
+              --notes-file release-notes.md \
+              "${assets[@]}"
+          fi
+
+      - name: Publish update package
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.UPDATES_REPO_TOKEN }}
+        run: |
+          if (-not $env:GH_TOKEN) {
+            throw 'UPDATES_REPO_TOKEN secret is not set.'
+          }
+          & "$env:GITHUB_WORKSPACE\scripts\publish_update.ps1" `
+            -ReleasePath "$env:GITHUB_WORKSPACE\out\Release" `
+            -OutputPath "$env:GITHUB_WORKSPACE\artifacts\updates" `
+            -Publish

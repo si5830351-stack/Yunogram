@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="disc" x1="15%" y1="0%" x2="85%" y2="100%">
+      <stop offset="0%" stop-color="#ff3b46"/>
+      <stop offset="55%" stop-color="#d20a1c"/>
+      <stop offset="100%" stop-color="#7a0010"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <circle cx="128" cy="128" r="124" fill="#0a0709"/>
+  <g filter="url(#glow)">
+    <circle cx="128" cy="128" r="112" fill="url(#disc)"/>
+  </g>
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#ff8a90" stroke-opacity="0.35" stroke-width="2"/>
+
+  <g transform="translate(128 128) scale(6.6) translate(-12 -12)">
+    <path fill="#0a0709" d="M9.417 15.181l-.397 5.584c.568 0 .814-.244 1.109-.537l2.663-2.545 5.518 4.041c1.012.564 1.725.267 1.998-.931l3.622-16.972.001-.001c.321-1.496-.541-2.081-1.527-1.714l-21.29 8.151c-1.453.564-1.431 1.374-.247 1.741l5.443 1.693 12.643-7.911c.595-.394 1.136-.176.691.218z"/>
+  </g>
+</svg>

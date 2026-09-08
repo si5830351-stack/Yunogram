@@ -1,0 +1,82 @@
+/*
+ * This is the source code of Yunogram for Desktop.
+ *
+ * We do not and cannot prevent the use of our code,
+ * but be respectful and credit the original author.
+ *
+ * Copyright @Radolyn, 2025
+ */
+
+using "ui/colors.palette";
+using "ui/chat/chat.style";
+using "ui/widgets/widgets.style";
+using "dialogs/dialogs.style";
+
+yunoGhostIcon: icon {{ "yuno/ghost", menuIconColor }};
+yunoGhostModeGlobalIcon: icon {{ "yuno/ghost_mode_global", historyPeerUserpicFg }};
+yunoEditsHistoryIcon: icon {{ "yuno/edits_history", menuIconColor }};
+yunoLReadMenuIcon: icon {{ "yuno/lread", menuIconColor }};
+yunoSReadMenuIcon: icon {{ "yuno/sread", menuIconColor }};
+yunoStreamerModeMenuIcon: icon {{ "yuno/streamer", menuIconColor }};
+yunoToBeginningMenuIcon: icon {{ "yuno/to_beginning", menuIconColor }};
+yunoRepeatMenuIcon: icon {{ "yuno/repeat", menuIconColor }};
+yunoContactsMutualIcon: icon {{ "yuno/contacts_mutual", contactsStatusFg }};
+yunoContactsMutualIconOver: icon {{ "yuno/contacts_mutual", contactsStatusFgOver }};
+
+messageFieldAttachIcon: icon {{ "yuno/message_field/attach", menuIconColor }};
+messageFieldCommandsIcon: icon {{ "yuno/message_field/commands", menuIconColor }};
+messageFieldEmojiIcon: icon {{ "yuno/message_field/emoji", menuIconColor }};
+messageFieldVoiceIcon: icon {{ "yuno/message_field/voice", menuIconColor }};
+messageFieldTTLIcon: icon {{ "yuno/message_field/ttl", menuIconColor }};
+messageFieldCocoonAiIcon: icon{
+	{ size(24px, 24px), transparent },
+	{ "chat/ai_letters-20x20", menuIconColor, point(2px, 2px) },
+	{ "chat/ai_star1-20x20", menuIconColor, point(2px, 2px) },
+	{ "chat/ai_star2-20x20", menuIconColor, point(2px, 2px) },
+};
+
+inChannelBadgeIcon: icon {{ "yuno/channel", msgInDateFg }};
+inChannelBadgeSelectedIcon: icon {{ "yuno/channel", msgInDateFgSelected }};
+outChannelBadgeIcon: icon {{ "yuno/channel", msgOutDateFg }};
+outChannelBadgeSelectedIcon: icon {{ "yuno/channel", msgOutDateFgSelected }};
+
+infoExteraOfficialBadge: icon {{ "yuno/extera_official", profileVerifiedCheckBg }};
+infoExteraSupporterBadge: icon {{ "yuno/extera_badge", profileVerifiedCheckBg }};
+
+winEnterWithGuestIcon: icon {{ "yuno/ghost_tray", windowFg }};
+
+editedIcon: IconEmoji{
+    icon: icon{{ "yuno/edited", windowFg }};
+    padding: margins(0px, 0px, 0px, 0px);
+    useIconColor: false;
+}
+
+deletedIcon: IconEmoji{
+    icon: icon{{ "yuno/trash_bin", windowFg }};
+    padding: margins(0px, 0px, 0px, 0px);
+    useIconColor: false;
+}
+
+burntIcon: IconEmoji{
+    icon: icon{{ "yuno/burnt", windowFg }};
+    padding: margins(0px, 0px, 0px, 0px);
+    useIconColor: false;
+}
+
+dialogsExteraOfficialIcon: ThreeStateIcon {
+	icon: icon {{ "yuno/dialogs_extera_official", dialogsVerifiedIconBg }};
+	over: icon {{ "yuno/dialogs_extera_official", dialogsVerifiedIconBgOver }};
+	active: icon {{ "yuno/dialogs_extera_official", dialogsVerifiedIconBgActive }};
+}
+dialogsExteraSupporterIcon: ThreeStateIcon {
+	icon: icon {{ "yuno/dialogs_extera_supporter", dialogsVerifiedIconBg }};
+	over: icon {{ "yuno/dialogs_extera_supporter", dialogsVerifiedIconBgOver }};
+	active: icon {{ "yuno/dialogs_extera_supporter", dialogsVerifiedIconBgActive }};
+}
+
+yunoHistoryFileInPlugin: icon {{ "yuno/history_file_plugin", historyFileInIconFg }};
+yunoHistoryFileInPluginSelected: icon {{ "yuno/history_file_plugin", historyFileInIconFgSelected }};
+yunoHistoryFileOutPlugin: icon {{ "yuno/history_file_plugin", historyFileOutIconFg }};
+yunoHistoryFileOutPluginSelected: icon {{ "yuno/history_file_plugin", historyFileOutIconFgSelected }};
+
+menuIconClearAttention: icon {{ "menu/clear", menuIconAttentionColor }};

@@ -1,0 +1,22 @@
+[Desktop Entry]
+Name=Yunogram Desktop
+Comment=Personal Telegram Desktop build with the ghost-mode feature set
+TryExec=Yunogram
+Exec=env DESKTOPINTEGRATION=1 Yunogram -- %U
+Icon=com.yunogram.desktop
+Terminal=false
+StartupWMClass=Yunogram
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;x-scheme-handler/tonsite;
+Keywords=tg;chat;im;messaging;messenger;sms;telegram;tdesktop;
+Actions=quit;
+DBusActivatable=true
+SingleMainWindow=true
+X-GNOME-UsesNotifications=true
+X-GNOME-SingleWindow=true
+
+[Desktop Action quit]
+Exec=Yunogram -quit
+Name=Quit Yunogram Desktop
+Icon=application-exit

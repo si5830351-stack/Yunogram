@@ -1,0 +1,38 @@
+<RCC>
+    <qresource prefix="/gui">
+        <file alias="art/yuno/alt/app.svg">../../art/yuno/alt/app.svg</file>
+        <file alias="art/yuno/alt/app_icon.ico">../../art/yuno/alt/app_icon.ico</file>
+        <file alias="art/yuno/bard/app.svg">../../art/yuno/bard/app.svg</file>
+        <file alias="art/yuno/bard/app_icon.ico">../../art/yuno/bard/app_icon.ico</file>
+        <file alias="art/yuno/chibi/app.png">../../art/yuno/chibi/app.png</file>
+        <file alias="art/yuno/chibi/app_icon.ico">../../art/yuno/chibi/app_icon.ico</file>
+        <file alias="art/yuno/chibi2/app.png">../../art/yuno/chibi2/app.png</file>
+        <file alias="art/yuno/chibi2/app_icon.ico">../../art/yuno/chibi2/app_icon.ico</file>
+        <file alias="art/yuno/default/app.svg">../../art/yuno/default/app.svg</file>
+        <file alias="art/yuno/default/app_icon.ico">../../art/yuno/default/app_icon.ico</file>
+        <file alias="art/yuno/discord/app.svg">../../art/yuno/discord/app.svg</file>
+        <file alias="art/yuno/discord/app_icon.ico">../../art/yuno/discord/app_icon.ico</file>
+        <file alias="art/yuno/extera/app.svg">../../art/yuno/extera/app.svg</file>
+        <file alias="art/yuno/extera/app_icon.ico">../../art/yuno/extera/app_icon.ico</file>
+        <file alias="art/yuno/extera2/app.svg">../../art/yuno/extera2/app.svg</file>
+        <file alias="art/yuno/extera2/app_icon.ico">../../art/yuno/extera2/app_icon.ico</file>
+        <file alias="art/yuno/nothing/app.svg">../../art/yuno/nothing/app.svg</file>
+        <file alias="art/yuno/nothing/app_icon.ico">../../art/yuno/nothing/app_icon.ico</file>
+        <file alias="art/yuno/spotify/app.svg">../../art/yuno/spotify/app.svg</file>
+        <file alias="art/yuno/spotify/app_icon.ico">../../art/yuno/spotify/app_icon.ico</file>
+        <file alias="art/yuno/win95/app.png">../../art/yuno/win95/app.png</file>
+        <file alias="art/yuno/win95/app_icon.ico">../../art/yuno/win95/app_icon.ico</file>
+        <file alias="art/yuno/yaplus/app.svg">../../art/yuno/yaplus/app.svg</file>
+        <file alias="art/yuno/yaplus/app_icon.ico">../../art/yuno/yaplus/app_icon.ico</file>
+        <file alias="icons/yuno/nocover.svg">../../icons/yuno/nocover.svg</file>
+        <file alias="icons/yuno/donates/boosty.svg">../../icons/yuno/donates/boosty.svg</file>
+        <file alias="icons/yuno/donates/ton.svg">../../icons/yuno/donates/ton.svg</file>
+        <file alias="icons/yuno/donates/bitcoin.svg">../../icons/yuno/donates/bitcoin.svg</file>
+        <file alias="icons/yuno/donates/ethereum.svg">../../icons/yuno/donates/ethereum.svg</file>
+        <file alias="icons/yuno/donates/solana.svg">../../icons/yuno/donates/solana.svg</file>
+        <file alias="icons/yuno/donates/tron.svg">../../icons/yuno/donates/tron.svg</file>
+        <file alias="icons/yuno/donates/support_logo.svg">../../icons/yuno/donates/support_logo.svg</file>
+        <file alias="langs/yuno/ru.json">../../langs/yuno/ru.json</file>
+        <file alias="Yunogram.tdesktop-theme">../../Yunogram.tdesktop-theme</file>
+    </qresource>
+</RCC>
