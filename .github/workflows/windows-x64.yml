@@ -298,12 +298,16 @@ jobs:
         env:
           PACKER_PRIVATE_H: ${{ secrets.PACKER_PRIVATE_H }}
         run: |
+          DEST="$TBUILD/$REPO_DIR/Telegram/SourceFiles/_other/packer_private.h"
           if [ -z "$PACKER_PRIVATE_H" ]; then
-            echo "PACKER_PRIVATE_H secret is not set." >&2
-            exit 1
+            echo "PACKER_PRIVATE_H secret is not set - writing empty stub keys instead."
+            printf '%s\n' \
+              'const char *PrivateKey = "";' \
+              'const char *PrivateBetaKey = "";' \
+              > "$DEST"
+            exit 0
           fi
-          printf '%s' "$PACKER_PRIVATE_H" \
-            > "$TBUILD/$REPO_DIR/Telegram/SourceFiles/_other/packer_private.h"
+          printf '%s' "$PACKER_PRIVATE_H" > "$DEST"
 
       - name: Build Yunogram Desktop
         shell: cmd
