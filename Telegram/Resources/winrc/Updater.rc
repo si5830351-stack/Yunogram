@@ -55,7 +55,7 @@ BEGIN
             VALUE "FileDescription", "Yunogram Desktop Updater"
             VALUE "FileVersion", "7.2.7.0"
             VALUE "LegalCopyright", "Copyright (C) 2014-2026 Yunogram"
-            VALUE "ProductName", "Yunogram Desktop"
+            VALUE "ProductName", "Yunogram"
             VALUE "ProductVersion", "7.2.7.0"
         END
     END
