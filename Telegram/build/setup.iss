@@ -1,5 +1,5 @@
 #define MyAppShortName "Yunogram"
-#define MyAppName "Yunogram Desktop"
+#define MyAppName "Yunogram"
 #define MyAppPublisher "Yunogram"
 #define MyAppURL "https://github.com/si5830351-stack/Yunogram"
 #define MyAppExeName "Yunogram.exe"
