@@ -88,9 +88,6 @@
 [submodule "Telegram/lib_translate"]
 	path = Telegram/lib_translate
 	url = https://github.com/desktop-app/lib_translate
-[submodule "Telegram/lib_icu"]
-	path = Telegram/lib_icu
-	url = https://github.com/Yunogram/lib_icu.git
 [submodule "Telegram/ThirdParty/cmark-gfm"]
 	path = Telegram/ThirdParty/cmark-gfm
 	url = https://github.com/desktop-app/cmark-gfm.git

@@ -21,13 +21,6 @@ add_subdirectory(lib_webrtc)
 add_subdirectory(lib_webview)
 add_subdirectory(codegen)
 
-# Yunogram filters
-add_subdirectory(lib_icu)
-if (NOT MSVC)
-    target_compile_options(icu_regex_minimal PRIVATE -w)
-endif()
-# Yunogram filters
-
 get_filename_component(src_loc SourceFiles REALPATH)
 get_filename_component(res_loc Resources REALPATH)
 
@@ -105,9 +98,6 @@ PRIVATE
     desktop-app::external_openssl
     desktop-app::external_openal
     desktop-app::external_xxhash
-
-    # Yunogram filters
-    yunogram::lib_icu
 )
 
 set(yunogram_files

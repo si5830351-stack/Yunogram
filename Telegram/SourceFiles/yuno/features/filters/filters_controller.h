@@ -6,7 +6,7 @@
 // Copyright @Radolyn, 2026
 #pragma once
 
-#include "unicode/regex.h"
+#include <QRegularExpression>
 
 #include <memory>
 #include <optional>
@@ -26,26 +26,26 @@ void invalidate(not_null<HistoryItem*> item);
 
 struct ReversiblePattern
 {
-	std::shared_ptr<icu::RegexPattern> pattern;
-	bool reversed;
+        std::shared_ptr<QRegularExpression> pattern;
+        bool reversed;
 };
 
 struct HashablePattern
 {
-	std::vector<char> id;
-	ReversiblePattern pattern;
+        std::vector<char> id;
+        ReversiblePattern pattern;
 
-	bool operator==(const HashablePattern &other) const {
-		return id == other.id;
-	}
+        bool operator==(const HashablePattern &other) const {
+                return id == other.id;
+        }
 };
 
 struct PatternHasher
 {
-	std::size_t operator()(const HashablePattern &p) const {
-		std::string_view view(p.id.data(), p.id.size());
-		return std::hash<std::string_view>{}(view);
-	}
+        std::size_t operator()(const HashablePattern &p) const {
+                std::string_view view(p.id.data(), p.id.size());
+                return std::hash<std::string_view>{}(view);
+        }
 };
 
 }
